@@ -3,31 +3,29 @@
 `apijc` fetches and compares the status codes and json responses of user-defined paths on two domains and
 reports any differences.
 
-# Table of Contents
+# TOC
 
-- [API JSON Compare](#api-json-compare)
-- [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Installation](#installation)
-    - [Binary](#binary)
-    - [Golang](#golang)
-  - [Usage](#usage)
-  - [Example output](#example-output)
-  - [Configuration](#configuration)
-    - [CLI Flags](#cli-flags)
-    - [urlFile](#urlfile)
-      - [Structure](#structure)
-      - [Path expansion](#path-expansion)
-      - [Example](#example)
-    - [rateLimit](#ratelimit)
-    - [headerFile](#headerfile)
-      - [Example](#example-1)
-      - [Precedence](#precedence)
-    - [Output](#output)
-      - [stdout](#stdout)
-      - [outputFile](#outputfile)
-        - [Example](#example-2)
-  - [Exit codes](#exit-codes)
+- [Features](#features)
+- [Installation](#installation)
+  - [Binary](#binary)
+  - [Golang](#golang)
+- [Usage](#usage)
+- [Example output](#example-output)
+- [Configuration](#configuration)
+  - [CLI Flags](#cli-flags)
+  - [urlFile](#urlfile)
+    - [Structure](#structure)
+    - [Path expansion](#path-expansion)
+    - [Example](#example)
+  - [rateLimit](#ratelimit)
+  - [headerFile](#headerfile)
+    - [Example](#example-1)
+    - [Precedence](#precedence)
+  - [Output](#output)
+    - [stdout](#stdout)
+    - [outputFile](#outputfile)
+      - [Example](#example-2)
+- [Exit codes](#exit-codes)
 
 ## Features
 
@@ -107,14 +105,14 @@ exit status 1
 
 ### CLI Flags
 
-| Flag       | Required | Description                                                                                                        | Default |
-| ---------- | -------- | ------------------------------------------------------------------------------------------------------------------ | ------- |
-| baseDomain | yes      | The first domain to make all requests to                                                                           | -       |
-| newDomain  | yes      | The second domain to make all requests to                                                                          | -       |
-| urlFile    | yes      | JSON file containing target URL paths, HTTP method, ...<br />See [urlFile](#urlfile)                               | -       |
-| headerFile | no       | JSON file containing global header key-value pairs that will be set on each request. See [headerFile](#headerfile) | -       |
-| rateLimit  | no       | Requests per second (float).<br /> See [rateLimit](#ratelimit)                                                     | 1       |
-| outputFile | no       | Store findings in a JSON file. See [outputFile](#outputfile)                                                       | -       |
+| Flag       | Required | Description                                                                                                                | Default |
+| ---------- | -------- | -------------------------------------------------------------------------------------------------------------------------- | ------- |
+| baseDomain | yes      | The first domain to make all requests to                                                                                   | -       |
+| newDomain  | yes      | The second domain to make all requests to                                                                                  | -       |
+| urlFile    | yes      | Path to JSON file containing target URL paths, HTTP method, ...<br />See [urlFile](#urlfile)                               | -       |
+| headerFile | no       | Path to JSON file containing global header key-value pairs that will be set on each request. See [headerFile](#headerfile) | -       |
+| rateLimit  | no       | Requests per second (float).<br /> See [rateLimit](#ratelimit)                                                             | 1       |
+| outputFile | no       | Path to store findings in JSON format. See [outputFile](#outputfile)                                                       | -       |
 
 ### urlFile
 
