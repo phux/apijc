@@ -1,0 +1,22 @@
+{
+    "request": {
+        "method": "POST",
+        "url": "/v1/example",
+        "headers": {
+            "Content-Type": {
+                "equalTo": "application/json"
+            }
+        },
+        "bodyPatterns": [
+            {
+                "equalToJson": "{\"a\":\"b\"}"
+            }
+        ]
+    },
+    "response": {
+        "status": 201,
+        "jsonBody": {
+            "foo": "bar"
+        }
+    }
+}

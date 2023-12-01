@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "GET",
+        "urlPathPattern": "/v1/([0-9]*)"
+    },
+    "response": {
+        "status": 200,
+        "jsonBody": {
+            "foo": "bar"
+        }
+    }
+}

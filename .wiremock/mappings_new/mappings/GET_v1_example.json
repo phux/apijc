@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "GET",
+        "url": "/v1/example"
+    },
+    "response": {
+        "status": 200,
+        "jsonBody": {
+            "foo": "bar"
+        }
+    }
+}
