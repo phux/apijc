@@ -1,4 +1,4 @@
-# API JSON Compare
+# API JSON Compare (apijc)
 
 `apijc` fetches and compares the status codes and json responses of user-defined paths on two domains and
 reports any differences.
@@ -16,15 +16,15 @@ reports any differences.
   - [urlFile](#urlfile)
     - [Structure](#structure)
     - [Path expansion](#path-expansion)
-    - [Example](#example)
+    - [urlFile Example](#urlfile-example)
   - [rateLimit](#ratelimit)
   - [headerFile](#headerfile)
-    - [Example](#example-1)
+    - [headerFile Example](#headerfile-example)
     - [Precedence](#precedence)
   - [Output](#output)
     - [stdout](#stdout)
     - [outputFile](#outputfile)
-      - [Example](#example-2)
+      - [outputFile Example](#outputfile-example)
 - [Exit codes](#exit-codes)
 
 ## Features
@@ -43,7 +43,7 @@ reports any differences.
 
 ### Binary
 
-1. Download the binary for your architecture from the [Releases](/releases) page.
+1. Download the binary for your architecture from the [Releases](https://github.com/phux/apijc/releases) page.
 2. Put it into a directory in your `$PATH`
 
 ### Golang
@@ -105,14 +105,14 @@ exit status 1
 
 ### CLI Flags
 
-| Flag       | Required | Description                                                                                                                | Default |
-| ---------- | -------- | -------------------------------------------------------------------------------------------------------------------------- | ------- |
-| baseDomain | yes      | The first domain to make all requests to                                                                                   | -       |
-| newDomain  | yes      | The second domain to make all requests to                                                                                  | -       |
-| urlFile    | yes      | Path to JSON file containing target URL paths, HTTP method, ...<br />See [urlFile](#urlfile)                               | -       |
-| headerFile | no       | Path to JSON file containing global header key-value pairs that will be set on each request. See [headerFile](#headerfile) | -       |
-| rateLimit  | no       | Requests per second (float).<br /> See [rateLimit](#ratelimit)                                                             | 1       |
-| outputFile | no       | Path to store findings in JSON format. See [outputFile](#outputfile)                                                       | -       |
+| Flag       | Required | Description                                                                                                                                  | Default |
+| ---------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| baseDomain | yes      | The first domain to make all requests to                                                                                                     | -       |
+| newDomain  | yes      | The second domain to make all requests to                                                                                                    | -       |
+| urlFile    | yes      | Path to JSON file containing target URL paths, HTTP method, ...<br />See [urlFile](#urlfile)                                                 | -       |
+| headerFile | no       | Path to JSON file containing global and/or per-domain header key-value pairs that will be set on each request. See [headerFile](#headerfile) | -       |
+| rateLimit  | no       | Requests per second (float).<br /> See [rateLimit](#ratelimit)                                                                               | 1       |
+| outputFile | no       | Path to store findings in JSON format. See [outputFile](#outputfile)                                                                         | -       |
 
 ### urlFile
 
@@ -131,8 +131,8 @@ The `urlFile` defines the relative paths that will be requested and compared on 
         "requestHeaders": { // optional
           "<string, header key>": "<string, header value>"
         },
-        "patternPrefix": "<optional string, a character to start exansion; default {>",
-        "patternSuffix": "<optional string, a character to stop exansion; default }>"
+        "patternPrefix": "<optional string, a character to start expansion; default {>",
+        "patternSuffix": "<optional string, a character to stop expansion; default }>"
       }
     ]
 
@@ -169,7 +169,7 @@ This path will result in 4 paths in total:
 - `/foo/2/bar/a`
 - `/foo/2/bar/b`
 
-#### Example
+#### urlFile Example
 
 ```json
 {
@@ -215,24 +215,41 @@ Examples:
 
 ### headerFile
 
-The `headerFile` allows to define key-value pairs that will be set on each
-request in addition to the static `requestHeaders` defined on each target in
+The `headerFile` allows to define key-value pairs in the `global` key that will be set on each
+request, in addition to the static `requestHeaders` defined on each target in
 the `urlFile`.<br/>
-Format: flat JSON object
 
-#### Example
+Additionally, it is possible to set per-domain header key-value pairs that will
+be set on each request to the particular domain (`baseDomain|newDomain`).
+This is helpful for example if you need to set different `Authorization` headers per domain.
+
+Note: The `global`, `baseDomain` and `newDomain` keys are all optional.
+
+#### headerFile Example
 
 ```sh
 # header.json
 {
-    "Authorization": "Bearer [...]"
+  "global": {
+    "SomeHeaderName": "Value applied to all requests to both domains"
+  },
+  "baseDomain": {
+    "SomeHeaderName": "Value applied to all requests to BaseDomain"
+  },
+  "newDomain": {
+    "SomeHeaderName": "Value applied to all requests to NewDomain"
+  }
 }
 ```
 
 #### Precedence
 
-If the `headerFile` and a target's `requestHeaders` have duplicate header keys,
+If the `headerFile` and a target's `requestHeaders` contain duplicate header keys,
 the target's `requestHeaders` value takes precedence.
+
+```
+headerFile.Global < headerFile.<New|Base>Domain < target.requestHeaders
+```
 
 ### Output
 
@@ -246,7 +263,7 @@ stdout, see [Example output](#example-output)
 Via `--outputFile` a path to a file can be passed. The findings will be written
 to this file instead of stdout.
 
-##### Example
+##### outputFile Example
 
 ```sh
 # findings.json
@@ -256,7 +273,7 @@ to this file instead of stdout.
     "error": "JSON mismatch",
     "diff": "@ [\"foo\"]\n- \"baz\"\n+ \"bar\"\n"
   }
-]%
+]
 ```
 
 ## Exit codes

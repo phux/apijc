@@ -1,7 +1,6 @@
 package app_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/phux/apijc/app"
@@ -11,7 +10,7 @@ import (
 )
 
 func TestApp_Run(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	type fields struct {
 		BaseDomain string
 		NewDomain  string
@@ -50,20 +49,64 @@ func TestApp_Run(t *testing.T) {
 			},
 			wantErr: app.ErrNoTargetsDefined,
 		},
+		{
+			name: "PatternPrefix defined but PatternSuffix not",
+			fields: fields{
+				BaseDomain: "http://localhost:123",
+				NewDomain:  "http://localhost:456",
+				URLs: app.URLs{
+					Targets: map[string][]app.Target{
+						"GET": {
+							{
+								RelativePath:       "/foo",
+								ExpectedStatusCode: 0,
+								PatternPrefix:      stringPointer("{"),
+								PatternSuffix:      nil,
+							},
+						},
+					},
+				},
+			},
+			wantErr: app.ErrPrefixFilledButSuffixNot,
+		},
+		{
+			name: "PatternSuffix defined but PatternPrefix not",
+			fields: fields{
+				BaseDomain: "http://localhost:123",
+				NewDomain:  "http://localhost:456",
+				URLs: app.URLs{
+					Targets: map[string][]app.Target{
+						"GET": {
+							{
+								RelativePath:       "/foo",
+								ExpectedStatusCode: 0,
+								PatternPrefix:      nil,
+								PatternSuffix:      stringPointer("}"),
+							},
+						},
+					},
+				},
+			},
+			wantErr: app.ErrSuffixFilledButPrefixNot,
+		},
 	}
 
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			a := &app.App{
 				BaseDomain: tt.fields.BaseDomain,
 				NewDomain:  tt.fields.NewDomain,
 				URLs:       tt.fields.URLs,
+				Results:    &app.Results{},
 			}
 
-			if err := a.Run(); err != nil && !errors.Is(err, tt.wantErr) {
-				t.Errorf("App.Run() error = %v, wantErr %v", err, tt.wantErr)
+			err := a.Run()
+			if tt.wantErr == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, tt.wantErr)
 			}
 		})
 	}
@@ -75,6 +118,7 @@ func TestApp_CheckTarget(t *testing.T) {
 		NewDomain  string
 		URLs       app.URLs
 		Results    *app.Results
+		headers    app.Headers
 	}
 	type args struct {
 		httpMethod  string
@@ -315,6 +359,66 @@ func TestApp_CheckTarget(t *testing.T) {
 			expectedFindings:     []app.Finding{},
 			expectedCheckedPaths: 1,
 		},
+		{
+			name: "Happy Path - global headers are applied",
+			fields: fields{
+				BaseDomain: "http://localhost:1234",
+				NewDomain:  "http://localhost:5678",
+				URLs:       app.URLs{},
+				Results:    &app.Results{},
+				headers: app.Headers{
+					Global: map[string]string{"foo": "bar"},
+				},
+			},
+			args: args{
+				httpMethod:  "GET",
+				relativeURL: "/foobar",
+				statusCode:  200,
+			},
+			mockedHTTPResponses: httpResponses{
+				baseResponse: httpResponse{
+					statusCode: 200,
+					body:       `{"foo": "bar"}`,
+				},
+				newResponse: httpResponse{
+					statusCode: 200,
+					body:       `{"foo": "bar"}`,
+				},
+			},
+			expectedFindings:     []app.Finding{},
+			expectedCheckedPaths: 1,
+		},
+		{
+			name: "Happy Path - baseDomain headers and newDomain headers are applied",
+			fields: fields{
+				BaseDomain: "http://localhost:1234",
+				NewDomain:  "http://localhost:5678",
+				URLs:       app.URLs{},
+				Results:    &app.Results{},
+				headers: app.Headers{
+					Global:     map[string]string{"foo": "bar"},
+					BaseDomain: map[string]string{"baseHeader": "baseValue"},
+					NewDomain:  map[string]string{"newHeader": "newValue"},
+				},
+			},
+			args: args{
+				httpMethod:  "GET",
+				relativeURL: "/foobar",
+				statusCode:  200,
+			},
+			mockedHTTPResponses: httpResponses{
+				baseResponse: httpResponse{
+					statusCode: 200,
+					body:       `{"foo": "bar"}`,
+				},
+				newResponse: httpResponse{
+					statusCode: 200,
+					body:       `{"foo": "bar"}`,
+				},
+			},
+			expectedFindings:     []app.Finding{},
+			expectedCheckedPaths: 1,
+		},
 	}
 
 	for _, tt := range tests {
@@ -323,12 +427,16 @@ func TestApp_CheckTarget(t *testing.T) {
 
 			expectedBaseURL := tt.fields.BaseDomain + tt.args.relativeURL
 			gock.New(expectedBaseURL).
+				MatchHeaders(tt.fields.headers.Global).
+				MatchHeaders(tt.fields.headers.BaseDomain).
 				Reply(tt.mockedHTTPResponses.baseResponse.statusCode).
 				JSON(tt.mockedHTTPResponses.baseResponse.body)
 
 			if tt.mockedHTTPResponses.baseResponse.statusCode == 200 {
 				expectedNewURL := tt.fields.NewDomain + tt.args.relativeURL
 				gock.New(expectedNewURL).
+					MatchHeaders(tt.fields.headers.Global).
+					MatchHeaders(tt.fields.headers.NewDomain).
 					Reply(tt.mockedHTTPResponses.newResponse.statusCode).
 					JSON(tt.mockedHTTPResponses.newResponse.body)
 			}
@@ -338,7 +446,7 @@ func TestApp_CheckTarget(t *testing.T) {
 				tt.fields.NewDomain,
 				app.NewURLParser(),
 				1000,
-				nil,
+				tt.fields.headers,
 			)
 
 			checkedPaths, totalPaths, err := a.CheckTarget(
@@ -466,7 +574,7 @@ func TestCheckTarget_WithRanges(t *testing.T) {
 				newDomain,
 				app.NewURLParser(),
 				1000,
-				nil,
+				app.Headers{},
 			)
 
 			defer gock.Off()
@@ -491,4 +599,8 @@ func TestCheckTarget_WithRanges(t *testing.T) {
 			assert.True(t, gock.IsDone())
 		})
 	}
+}
+
+func stringPointer(str string) *string {
+	return &str
 }

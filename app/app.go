@@ -37,14 +37,14 @@ type App struct {
 	Results    *Results
 	parser     parser
 	limiter    limiter
-	headers    map[string]string
+	headers    Headers
 }
 
 func NewApp(
 	baseDomain, newDomain string,
 	parser parser,
 	rateLimit float64,
-	headers map[string]string,
+	headers Headers,
 ) *App {
 	return &App{
 		BaseDomain: baseDomain,
@@ -74,8 +74,12 @@ func (a *App) Run() error {
 	totalCheckedPaths := 0
 	for httpMethod, targets := range a.URLs.Targets {
 		for _, target := range targets {
-			initialFindings := len(a.Results.Findings)
 			log.Printf("Checking %s %s\n", httpMethod, target.RelativePath)
+
+			initialFindings := 0
+			if a.Results != nil {
+				initialFindings = len(a.Results.Findings)
+			}
 
 			checkedPaths, countPaths, err := a.CheckTarget(httpMethod, target)
 			totalCheckedPaths += checkedPaths
@@ -83,7 +87,7 @@ func (a *App) Run() error {
 			if err != nil {
 				log.Println(err)
 
-				continue
+				return err
 			}
 
 			result := "Success"
@@ -281,6 +285,7 @@ func (a *App) makeHTTPRequest(httpMethod, url string, target Target) (*http.Resp
 func (a *App) buildRequest(target Target, httpMethod, url string) (*http.Request, error) {
 	var req *http.Request
 	var err error
+
 	if target.RequestBody != nil {
 		req, err = http.NewRequest(httpMethod, url, strings.NewReader(*target.RequestBody))
 	} else {
@@ -290,15 +295,27 @@ func (a *App) buildRequest(target Target, httpMethod, url string) (*http.Request
 		return nil, fmt.Errorf("client: could not create request: %w", err)
 	}
 
-	for key, value := range a.headers {
+	a.setHeaders(req, url, target)
+
+	return req, nil
+}
+
+func (a *App) setHeaders(req *http.Request, url string, target Target) {
+	for key, value := range a.headers.Global {
+		req.Header.Set(key, value)
+	}
+
+	domainSpecificHeaders := a.headers.BaseDomain
+	if !a.isBaseDomain(url) {
+		domainSpecificHeaders = a.headers.NewDomain
+	}
+	for key, value := range domainSpecificHeaders {
 		req.Header.Set(key, value)
 	}
 
 	for key, value := range target.RequestHeaders {
 		req.Header.Set(key, value)
 	}
-
-	return req, nil
 }
 
 func (a *App) addFinding(url, diff string, err error) {
@@ -306,4 +323,8 @@ func (a *App) addFinding(url, diff string, err error) {
 		a.Results.Findings,
 		Finding{URL: url, Diff: diff, Error: fmt.Sprint(err)},
 	)
+}
+
+func (a *App) isBaseDomain(url string) bool {
+	return strings.HasPrefix(url, a.BaseDomain)
 }

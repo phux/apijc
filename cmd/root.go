@@ -103,20 +103,20 @@ func init() {
 	rootCmd.Flags().StringVar(&headerFile, "headerFile", "", "[optional] headerFile: provide (additional) header key-value pairs via a JSON object (string: string). Applied to every request")
 }
 
-func loadHeadersFromFile() (map[string]string, error) {
+func loadHeadersFromFile() (app.Headers, error) {
+	var headers app.Headers
 	if headerFile == "" {
-		return map[string]string{}, nil
+		return headers, nil
 	}
 
 	content, err := ioutil.ReadFile(headerFile)
 	if err != nil {
-		return nil, err
+		return headers, err
 	}
 
-	var headers map[string]string
 	err = json.Unmarshal(content, &headers)
 	if err != nil {
-		return nil, err
+		return headers, err
 	}
 
 	return headers, nil
