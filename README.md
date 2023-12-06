@@ -1,35 +1,42 @@
 # API JSON Compare (apijc)
 
-`apijc` fetches and compares the status codes and json responses of user-defined paths on two domains and
-reports any differences.
+`apijc` fetches and compares the status codes and json responses of
+user-defined paths on two domains and reports any differences.
 
-# TOC
+<!--toc:start-->
 
-- [Features](#features)
-- [Installation](#installation)
-  - [Binary](#binary)
-  - [Golang](#golang)
-- [Usage](#usage)
-- [Example output](#example-output)
-- [Configuration](#configuration)
-  - [CLI Flags](#cli-flags)
-  - [urlFile](#urlfile)
-    - [Structure](#structure)
-    - [Path expansion](#path-expansion)
-    - [urlFile Example](#urlfile-example)
-  - [rateLimit](#ratelimit)
-  - [headerFile](#headerfile)
-    - [headerFile Example](#headerfile-example)
-    - [Precedence](#precedence)
-  - [Output](#output)
-    - [stdout](#stdout)
-    - [outputFile](#outputfile)
-      - [outputFile Example](#outputfile-example)
-- [Exit codes](#exit-codes)
+- [API JSON Compare (apijc)](#api-json-compare-apijc)
+  - [Features](#features)
+  - [Installation](#installation)
+    - [Binary](#binary)
+    - [Golang](#golang)
+  - [Usage](#usage)
+    - [Quickstart](#quickstart)
+  - [Example output](#example-output)
+  - [Configuration](#configuration)
+    - [CLI Flags](#cli-flags)
+    - [urlFile](#urlfile)
+      - [targets](#targets)
+      - [sequentialTargets](#sequentialtargets)
+      - [Structure](#structure)
+      - [Path expansion](#path-expansion)
+      - [urlFile Example](#urlfile-example)
+    - [rateLimit](#ratelimit)
+    - [headerFile](#headerfile)
+      - [headerFile Example](#headerfile-example)
+      - [Precedence](#precedence)
+    - [Output](#output)
+      - [stdout](#stdout)
+      - [outputFile](#outputfile)
+        - [outputFile Example](#outputfile-example)
+  - [Exit codes](#exit-codes)
+  <!--toc:end-->
 
 ## Features
 
-- diff comparison of response bodies from both domains
+- Diff comparison of response bodies from both domains
+- Sequential request chains. See [sequentialTargets](#sequentialtargets) below
+- Check for expected status codes
 - Path expansion of
   - Lists (example: `/foo/{1,2,3}/bar`)
   - Numerical ranges (example: `/foo/{1-100}/bar`)
@@ -37,13 +44,16 @@ reports any differences.
   - See [Path expansion](#path-expansion) below
 - Rate limiting
 - Load headers from file
+  - Specify header key-value pairs globally or per domain
+- Custom headers per url target
 - Write errors/mismatches to stdout or file
 
 ## Installation
 
 ### Binary
 
-1. Download the binary for your architecture from the [Releases](https://github.com/phux/apijc/releases) page.
+1. Download the binary for your architecture from the
+   [Releases](https://github.com/phux/apijc/releases) page.
 2. Put it into a directory in your `$PATH`
 
 ### Golang
@@ -64,6 +74,36 @@ apijc \
   --outputFile <path/to/an/output.json> # optional
 ```
 
+### Quickstart
+
+1. Install - see [Installation](#installation)
+2. Create a urlFile JSON - see [urlFile](#urlfile) - and setup up at least one target
+
+Minimal `urlFile` example:
+
+```json
+{
+  "targets": [
+    {
+      "relativePath": "/some/relative/path",
+      "httpMethod": "GET",
+      "expectedStatusCode": 200
+    }
+  ]
+}
+```
+
+3. execute `apijc`
+
+```sh
+apijc \
+  --baseDomain "<http://your-base.domain>" \
+  --newDomain "<http://your-other.domain>" \
+  --urlFile path/to/your/urlFile.json
+```
+
+Note: if `--rateLimit` is not passed to `apijc`, the default rate limit is 1 request per second.
+
 ## Example output
 
 ```sh
@@ -74,30 +114,35 @@ $ apijc --baseDomain http://localhost:8080 \
 
 Starting with rate limit: 1000.000000/second
 
-2023/11/30 20:48:21 Checking GET /v1/example
-2023/11/30 20:48:21 Success: GET /v1/example (checked 1 of 1 paths)
+2023/12/06 22:09:35 Checking GET /v1/example
+2023/12/06 22:09:35 Success: GET /v1/example (checked 1 of 1 paths)
 
-2023/11/30 20:48:21 Checking GET /v1/{1-100}
-2023/11/30 20:48:21 Success: GET /v1/{1-100} (checked 100 of 100 paths)
+2023/12/06 22:09:35 Checking GET /v1/{1-100}
+2023/12/06 22:09:36 Success: GET /v1/{1-100} (checked 100 of 100 paths)
 
-2023/11/30 20:48:21 Checking GET /v1/@1-3@
-2023/11/30 20:48:21 Success: GET /v1/@1-3@ (checked 3 of 3 paths)
+2023/12/06 22:09:36 Checking GET /v1/@1-3@
+2023/12/06 22:09:36 Success: GET /v1/@1-3@ (checked 3 of 3 paths)
 
-2023/11/30 20:48:21 Checking GET /v1/expected_jsonmissmatch
-2023/11/30 20:48:21 ERROR: GET /v1/expected_jsonmissmatch (checked 1 of 1 paths)
+2023/12/06 22:09:36 Checking GET /v1/expected_jsonmissmatch
+2023/12/06 22:09:36 ERROR: GET /v1/expected_jsonmissmatch (checked 1 of 1 paths)
 
-2023/11/30 20:48:21 Checking POST /v1/example
-2023/11/30 20:48:21 Success: POST /v1/example (checked 1 of 1 paths)
+2023/12/06 22:09:36 Checking POST /v1/example
+2023/12/06 22:09:36 Success: POST /v1/example (checked 1 of 1 paths)
 
-2023/11/30 20:48:21 Done. Checked 106 of 106 paths
+2023/12/06 22:09:36 Checking sequential group: First POST, then GET
+2023/12/06 22:09:36 Success: POST /v1/sequential_post (checked 1 of 1 paths)
 
-2023/11/30 20:48:21 Findings:
-2023/11/30 20:48:21 /v1/expected_jsonmissmatch
+2023/12/06 22:09:36 Success: GET /v1/sequential_get (checked 1 of 1 paths)
+
+2023/12/06 22:09:36 Done. Checked 108 of 108 paths
+
+2023/12/06 22:09:36 Findings:
+2023/12/06 22:09:36 /v1/expected_jsonmissmatch
 Error: JSON mismatch
 Diff: @ ["foo"]
 - "baz"
 + "bar"
-2023/11/30 20:48:21 Finished - 1 findings
+2023/12/06 22:09:36 Finished - 1 findings
 exit status 1
 ```
 
@@ -116,7 +161,32 @@ exit status 1
 
 ### urlFile
 
-The `urlFile` defines the relative paths that will be requested and compared on both domains.
+The `urlFile` defines the relative paths that will be requested and compared on
+both domains. It contains `targets` and/or `sequentialTargets`.
+
+#### targets
+
+Standalone requests are defined in the `targets` key of the `urlFile`. Each
+target will be requested on both, `baseDomain` and `newDomain`.
+
+#### sequentialTargets
+
+In the `sequentialTargets` key chains of consecutive calls can be defined.
+Example: first make a POST request to create an entity, then
+make a GET request to fetch the created entity.
+
+The steps for a sequential target group are:
+
+1. make request to target 1 on `baseDomain`
+2. compare actual status code vs `expectedStatusCode`
+3. make request to target 1 on `newDomain`
+4. compare actual status code vs `expectedStatusCode`
+5. compare response bodies
+6. make request to target 2 on `baseDomain`
+7. compare actual status code vs `expectedStatusCode`
+8. make request to target 2 on `newDomain`
+9. compare actual status code vs `expectedStatusCode`
+10. compare response bodies
 
 #### Structure
 
@@ -134,7 +204,21 @@ The `urlFile` defines the relative paths that will be requested and compared on 
         "patternPrefix": "<optional string, a character to start expansion; default {>",
         "patternSuffix": "<optional string, a character to stop expansion; default }>"
       }
+    ],
+  "sequentialTargets": [
+    [
+      {
+        "relativePath": "/first/path",
+        "httpMethod": "<GET|POST|...>",
+        "expectedStatusCode": 201
+      },
+      {
+        "relativePath": "/second/path",
+        "httpMethod": "<GET|POST|...>",
+        "expectedStatusCode": 200
+      }
     ]
+  ]
 }
 ```
 
@@ -207,7 +291,7 @@ The number defines the allowed requests per seconds.
 
 Examples:
 
-- `--rateLimit=1`: 1 request per second
+- `--rateLimit=1`: 1 request per second (default)
 - `--rateLimit=0.5`: 1 request per 2 seconds
 - `--rateLimit=10`: 10 requests per second
 
@@ -246,7 +330,7 @@ If the `headerFile` and a target's `requestHeaders` contain duplicate header key
 the target's `requestHeaders` value takes precedence.
 
 ```
-headerFile.Global < headerFile.<New|Base>Domain < target.requestHeaders
+headerFile.global < headerFile.<new|base>Domain < target.requestHeaders
 ```
 
 ### Output

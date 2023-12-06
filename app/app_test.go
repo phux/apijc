@@ -10,7 +10,6 @@ import (
 )
 
 func TestApp_Run(t *testing.T) {
-	// t.Parallel()
 	type fields struct {
 		BaseDomain string
 		NewDomain  string
@@ -92,7 +91,6 @@ func TestApp_Run(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			// t.Parallel()
 			a := &app.App{
 				BaseDomain: tt.fields.BaseDomain,
 				NewDomain:  tt.fields.NewDomain,
@@ -477,13 +475,6 @@ func TestApp_CheckTarget(t *testing.T) {
 }
 
 func TestCheckTarget_WithRanges(t *testing.T) {
-	t.Parallel()
-	type mockedResponse struct {
-		targetURL    string
-		statusCode   int
-		responseBody interface{}
-	}
-
 	str := ""
 	tests := []struct {
 		name            string
@@ -491,21 +482,24 @@ func TestCheckTarget_WithRanges(t *testing.T) {
 		target          app.Target
 	}{
 		{
-			name: "Single range from 1 to 5",
+			name: "Single range from 1 to 2",
 			mockedResponses: []mockedResponse{
 				{
 					targetURL:    "/foo/1/bar",
+					httpMethod:   "GET",
 					statusCode:   200,
 					responseBody: map[string]string{},
 				},
 				{
 					targetURL:    "/foo/2/bar",
+					httpMethod:   "GET",
 					statusCode:   200,
 					responseBody: `{}`,
 				},
 			},
 			target: app.Target{
 				RelativePath:       "/foo/{1-2}/bar",
+				HTTPMethod:         "GET",
 				ExpectedStatusCode: 200,
 				RequestBody:        &str,
 			},
@@ -515,47 +509,56 @@ func TestCheckTarget_WithRanges(t *testing.T) {
 			mockedResponses: []mockedResponse{
 				{
 					targetURL:    "/foo/0/bar",
+					httpMethod:   "GET",
 					statusCode:   200,
 					responseBody: `{}`,
 				},
 				{
 					targetURL:    "/foo/1/bar",
+					httpMethod:   "GET",
 					statusCode:   200,
 					responseBody: `{}`,
 				},
 				{
 					targetURL:    "/foo/2/bar",
+					httpMethod:   "GET",
 					statusCode:   200,
 					responseBody: `{}`,
 				},
 				{
 					targetURL:    "/foo/3/bar",
+					httpMethod:   "GET",
 					statusCode:   200,
 					responseBody: `{}`,
 				},
 				{
 					targetURL:    "/foo/5/bar",
+					httpMethod:   "GET",
 					statusCode:   200,
 					responseBody: `{}`,
 				},
 				{
 					targetURL:    "/foo/7/bar",
+					httpMethod:   "GET",
 					statusCode:   200,
 					responseBody: `{}`,
 				},
 				{
 					targetURL:    "/foo/8/bar",
+					httpMethod:   "GET",
 					statusCode:   200,
 					responseBody: `{}`,
 				},
 				{
 					targetURL:    "/foo/9/bar",
+					httpMethod:   "GET",
 					statusCode:   200,
 					responseBody: `{}`,
 				},
 			},
 			target: app.Target{
 				RelativePath:       "/foo/{0,1-3,5,7-9}/bar",
+				HTTPMethod:         "GET",
 				ExpectedStatusCode: 200,
 				RequestBody:        &str,
 			},
@@ -577,15 +580,8 @@ func TestCheckTarget_WithRanges(t *testing.T) {
 
 			defer gock.Off()
 			for _, mockedResponse := range tt.mockedResponses {
-				gock.New(baseDomain).
-					Get(mockedResponse.targetURL).
-					Reply(200).
-					JSON(mockedResponse.responseBody)
-
-				gock.New(newDomain).
-					Get(mockedResponse.targetURL).
-					Reply(200).
-					JSON(mockedResponse.responseBody)
+				mockGock(baseDomain, mockedResponse)
+				mockGock(newDomain, mockedResponse)
 			}
 
 			checkedPaths, countPaths, err := a.CheckTarget(tt.target)
@@ -596,6 +592,97 @@ func TestCheckTarget_WithRanges(t *testing.T) {
 			assert.Equal(t, len(tt.mockedResponses), checkedPaths)
 			assert.True(t, gock.IsDone())
 		})
+	}
+}
+
+type mockedResponse struct {
+	targetURL    string
+	httpMethod   string
+	statusCode   int
+	responseBody interface{}
+}
+
+func TestRun_WithSequentialTargets(t *testing.T) {
+	// str := ""
+	tests := []struct {
+		name              string
+		mockedResponses   []mockedResponse
+		sequentialTargets map[string][]app.Target
+	}{
+		{
+			name: "POST and GET",
+			mockedResponses: []mockedResponse{
+				{
+					targetURL:    "/order",
+					httpMethod:   "POST",
+					statusCode:   201,
+					responseBody: map[string]string{},
+				},
+				{
+					targetURL:    "/order-get",
+					httpMethod:   "GET",
+					statusCode:   200,
+					responseBody: `{}`,
+				},
+			},
+			sequentialTargets: map[string][]app.Target{
+				"First POST, then GET": {
+					{
+						RelativePath:       "/order",
+						HTTPMethod:         "POST",
+						ExpectedStatusCode: 201,
+					},
+					{
+						RelativePath:       "/order-get",
+						HTTPMethod:         "GET",
+						ExpectedStatusCode: 200,
+					},
+				},
+			},
+		},
+	}
+
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
+			baseDomain := "http://localhost:1234"
+			newDomain := "http://localhost:5678"
+			a := app.NewApp(
+				baseDomain,
+				newDomain,
+				app.NewURLParser(),
+				1000,
+				app.Headers{},
+			)
+			a.URLs.SequentialTargets = tt.sequentialTargets
+
+			defer gock.Off()
+			for _, mockedResponse := range tt.mockedResponses {
+				mockGock(baseDomain, mockedResponse)
+				mockGock(newDomain, mockedResponse)
+			}
+
+			err := a.Run()
+
+			assert.NoError(t, err)
+			assert.Empty(t, a.Results.Findings)
+			assert.True(t, gock.IsDone())
+		})
+	}
+}
+
+func mockGock(domain string, resp mockedResponse) {
+	switch resp.httpMethod {
+	case "POST":
+		gock.New(domain).
+			Post(resp.targetURL).
+			Reply(resp.statusCode).
+			JSON(resp.responseBody)
+	case "GET":
+		gock.New(domain).
+			Get(resp.targetURL).
+			Reply(resp.statusCode).
+			JSON(resp.responseBody)
 	}
 }
 

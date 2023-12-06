@@ -43,5 +43,20 @@
             "patternPrefix": "{",
             "patternSuffix": "}"
         }
-    ]
+    ],
+    "sequentialTargets": {
+        "First POST, then GET": [
+            {
+                "relativePath": "/v1/sequential_post",
+                "httpMethod": "POST",
+                "expectedStatusCode": 201,
+                "requestBody": "{\"a\":\"b\"}"
+            },
+            {
+                "relativePath": "/v1/sequential_get",
+                "httpMethod": "GET",
+                "expectedStatusCode": 200
+            }
+        ]
+    }
 }

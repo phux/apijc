@@ -1,0 +1,17 @@
+{
+    "request": {
+        "method": "POST",
+        "url": "/v1/sequential_post",
+        "bodyPatterns": [
+            {
+                "equalToJson": "{\"a\":\"b\"}"
+            }
+        ]
+    },
+    "response": {
+        "status": 201,
+        "jsonBody": {
+            "foo": "bar"
+        }
+    }
+}

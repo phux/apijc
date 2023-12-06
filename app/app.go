@@ -62,7 +62,7 @@ func NewApp(
 }
 
 func (a *App) Run() error {
-	if len(a.URLs.Targets) == 0 {
+	if len(a.URLs.Targets) == 0 && len(a.URLs.SequentialTargets) == 0 {
 		return ErrNoTargetsDefined
 	}
 
@@ -75,33 +75,22 @@ func (a *App) Run() error {
 	for _, target := range a.URLs.Targets {
 		log.Printf("Checking %s %s\n", target.HTTPMethod, target.RelativePath)
 
-		initialFindings := 0
-		if a.Results != nil {
-			initialFindings = len(a.Results.Findings)
-		}
-
-		checkedPaths, countPaths, err := a.CheckTarget(target)
-		totalCheckedPaths += checkedPaths
-		totalPaths += countPaths
+		var err error
+		totalCheckedPaths, totalPaths, err = a.ProcessTarget(target, totalCheckedPaths, totalPaths)
 		if err != nil {
-			log.Println(err)
-
 			return err
 		}
+	}
 
-		result := "Success"
-		if len(a.Results.Findings) != initialFindings {
-			result = "ERROR"
+	for name, targets := range a.URLs.SequentialTargets {
+		log.Printf("Checking sequential group: %s\n", name)
+		for _, target := range targets {
+			var err error
+			totalCheckedPaths, totalPaths, err = a.ProcessTarget(target, totalCheckedPaths, totalPaths)
+			if err != nil {
+				return err
+			}
 		}
-
-		log.Printf(
-			"%s: %s %s (checked %d of %d paths)\n\n",
-			result,
-			target.HTTPMethod,
-			target.RelativePath,
-			checkedPaths,
-			countPaths,
-		)
 	}
 
 	log.Printf(
@@ -111,6 +100,37 @@ func (a *App) Run() error {
 	)
 
 	return nil
+}
+
+func (a *App) ProcessTarget(target Target, totalCheckedPaths int, totalPaths int) (int, int, error) {
+	initialFindings := 0
+	if a.Results != nil {
+		initialFindings = len(a.Results.Findings)
+	}
+
+	checkedPaths, countPaths, err := a.CheckTarget(target)
+	totalCheckedPaths += checkedPaths
+	totalPaths += countPaths
+	if err != nil {
+		log.Println(err)
+
+		return 0, 0, err
+	}
+
+	result := "Success"
+	if len(a.Results.Findings) != initialFindings {
+		result = "ERROR"
+	}
+
+	log.Printf(
+		"%s: %s %s (checked %d of %d paths)\n\n",
+		result,
+		target.HTTPMethod,
+		target.RelativePath,
+		checkedPaths,
+		countPaths,
+	)
+	return totalCheckedPaths, totalPaths, nil
 }
 
 func (a *App) buildOptsFromTarget(target Target) (Options, error) {

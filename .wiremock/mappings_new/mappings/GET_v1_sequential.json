@@ -1,0 +1,12 @@
+{
+    "request": {
+        "method": "GET",
+        "urlPathPattern": "/v1/sequential_get"
+    },
+    "response": {
+        "status": 200,
+        "jsonBody": {
+            "foo": "bar"
+        }
+    }
+}

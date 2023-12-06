@@ -77,6 +77,21 @@ func TestLoadURLsFromFile(t *testing.T) {
 						PatternSuffix: &patternSuffix,
 					},
 				},
+				SequentialTargets: map[string][]app.Target{
+					"First POST, then GET": {
+						{
+							RelativePath:       "/v1/sequential_post",
+							HTTPMethod:         "POST",
+							ExpectedStatusCode: 201,
+							RequestBody:        &postBody,
+						},
+						{
+							RelativePath:       "/v1/sequential_get",
+							HTTPMethod:         "GET",
+							ExpectedStatusCode: 200,
+						},
+					},
+				},
 			},
 			wantErr: false,
 		},
