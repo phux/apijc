@@ -50,7 +50,7 @@ func NewApp(
 		BaseDomain: baseDomain,
 		NewDomain:  newDomain,
 		URLs: URLs{
-			Targets: map[string][]Target{},
+			Targets: []Target{},
 		},
 		parser:  parser,
 		limiter: rate.NewLimiter(rate.Limit(rateLimit), 1),
@@ -72,38 +72,36 @@ func (a *App) Run() error {
 
 	totalPaths := 0
 	totalCheckedPaths := 0
-	for httpMethod, targets := range a.URLs.Targets {
-		for _, target := range targets {
-			log.Printf("Checking %s %s\n", httpMethod, target.RelativePath)
+	for _, target := range a.URLs.Targets {
+		log.Printf("Checking %s %s\n", target.HTTPMethod, target.RelativePath)
 
-			initialFindings := 0
-			if a.Results != nil {
-				initialFindings = len(a.Results.Findings)
-			}
-
-			checkedPaths, countPaths, err := a.CheckTarget(httpMethod, target)
-			totalCheckedPaths += checkedPaths
-			totalPaths += countPaths
-			if err != nil {
-				log.Println(err)
-
-				return err
-			}
-
-			result := "Success"
-			if len(a.Results.Findings) != initialFindings {
-				result = "ERROR"
-			}
-
-			log.Printf(
-				"%s: %s %s (checked %d of %d paths)\n\n",
-				result,
-				httpMethod,
-				target.RelativePath,
-				checkedPaths,
-				countPaths,
-			)
+		initialFindings := 0
+		if a.Results != nil {
+			initialFindings = len(a.Results.Findings)
 		}
+
+		checkedPaths, countPaths, err := a.CheckTarget(target)
+		totalCheckedPaths += checkedPaths
+		totalPaths += countPaths
+		if err != nil {
+			log.Println(err)
+
+			return err
+		}
+
+		result := "Success"
+		if len(a.Results.Findings) != initialFindings {
+			result = "ERROR"
+		}
+
+		log.Printf(
+			"%s: %s %s (checked %d of %d paths)\n\n",
+			result,
+			target.HTTPMethod,
+			target.RelativePath,
+			checkedPaths,
+			countPaths,
+		)
 	}
 
 	log.Printf(
@@ -154,7 +152,7 @@ func (*App) validatePatternPrefixAndSuffixMatch(target Target) error {
 	return nil
 }
 
-func (a *App) CheckTarget(httpMethod string, target Target) (int, int, error) {
+func (a *App) CheckTarget(target Target) (int, int, error) {
 	opts, err := a.buildOptsFromTarget(target)
 	if err != nil {
 		return 0, 0, err
@@ -182,7 +180,7 @@ func (a *App) CheckTarget(httpMethod string, target Target) (int, int, error) {
 		}
 
 		baseURL := a.BaseDomain + relativePath
-		baseBodyJSON, err := a.callTarget(httpMethod, baseURL, target)
+		baseBodyJSON, err := a.callTarget(baseURL, target)
 		if err != nil {
 			a.addFinding(baseURL, "", err)
 
@@ -190,7 +188,7 @@ func (a *App) CheckTarget(httpMethod string, target Target) (int, int, error) {
 		}
 
 		newURL := a.NewDomain + relativePath
-		newBodyJSON, err := a.callTarget(httpMethod, newURL, target)
+		newBodyJSON, err := a.callTarget(newURL, target)
 		if err != nil {
 			a.addFinding(newURL, "", err)
 
@@ -222,8 +220,8 @@ func (a *App) AddURLs(urls URLs) {
 	a.URLs = urls
 }
 
-func (a *App) callTarget(httpMethod, url string, target Target) ([]byte, error) {
-	res, err := a.makeHTTPRequest(httpMethod, url, target)
+func (a *App) callTarget(url string, target Target) ([]byte, error) {
+	res, err := a.makeHTTPRequest(url, target)
 	if err != nil {
 		return nil, a.requestError(res, target, err)
 	}
@@ -268,8 +266,8 @@ func (a *App) requestError(res *http.Response, target Target, err error) error {
 	return errWrapped
 }
 
-func (a *App) makeHTTPRequest(httpMethod, url string, target Target) (*http.Response, error) {
-	req, err := a.buildRequest(target, httpMethod, url)
+func (a *App) makeHTTPRequest(url string, target Target) (*http.Response, error) {
+	req, err := a.buildRequest(target, url)
 	if err != nil {
 		return nil, err
 	}
@@ -282,14 +280,14 @@ func (a *App) makeHTTPRequest(httpMethod, url string, target Target) (*http.Resp
 	return res, nil
 }
 
-func (a *App) buildRequest(target Target, httpMethod, url string) (*http.Request, error) {
+func (a *App) buildRequest(target Target, url string) (*http.Request, error) {
 	var req *http.Request
 	var err error
 
 	if target.RequestBody != nil {
-		req, err = http.NewRequest(httpMethod, url, strings.NewReader(*target.RequestBody))
+		req, err = http.NewRequest(target.HTTPMethod, url, strings.NewReader(*target.RequestBody))
 	} else {
-		req, err = http.NewRequest(httpMethod, url, nil)
+		req, err = http.NewRequest(target.HTTPMethod, url, nil)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("client: could not create request: %w", err)

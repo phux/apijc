@@ -7,10 +7,10 @@ import (
 )
 
 type URLs struct {
-	Targets map[string][]Target `json:"targets"`
+	Targets []Target `json:"targets"`
 }
 
-func NewURLs(targets map[string][]Target) *URLs {
+func NewURLs(targets []Target) *URLs {
 	return &URLs{
 		Targets: targets,
 	}

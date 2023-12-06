@@ -122,10 +122,10 @@ The `urlFile` defines the relative paths that will be requested and compared on 
 
 ```json
 {
-  "targets": {
-    "<HTTP method (GET|POST|...)>": [
+  "targets": [
       {
         "relativePath": "<required string, /a/relative/path/to/check/on/both/domains>",
+        "httpMethod": "<GET|POST|...>",
         "expectedStatusCode": <required int; checked on both domains>,
         "requestBody": "<optional string, body to send to relativePath>",
         "requestHeaders": { // optional
@@ -135,7 +135,6 @@ The `urlFile` defines the relative paths that will be requested and compared on 
         "patternSuffix": "<optional string, a character to stop expansion; default }>"
       }
     ]
-
 }
 ```
 
@@ -173,30 +172,29 @@ This path will result in 4 paths in total:
 
 ```json
 {
-  "targets": {
-    "GET": [
-      {
-        "relativePath": "/v1/example",
-        "expectedStatusCode": 200
+  "targets": [
+    {
+      "relativePath": "/v1/example",
+      "httpMethod": "GET",
+      "expectedStatusCode": 200
+    },
+    {
+      "relativePath": "/v1/{1-100}",
+      "httpMethod": "GET",
+      "expectedStatusCode": 200
+    },
+    {
+      "relativePath": "/v1/example",
+      "httpMethod": "POST",
+      "expectedStatusCode": 201,
+      "requestBody": "{\"a\":\"b\"}",
+      "requestHeaders": {
+        "Content-Type": "application/json"
       },
-      {
-        "relativePath": "/v1/{1-100}",
-        "expectedStatusCode": 200
-      }
-    ],
-    "POST": [
-      {
-        "relativePath": "/v1/example",
-        "expectedStatusCode": 201,
-        "requestBody": "{\"a\":\"b\"}",
-        "requestHeaders": {
-          "Content-Type": "application/json"
-        },
-        "patternPrefix": "{",
-        "patternSuffix": "}"
-      }
-    ]
-  }
+      "patternPrefix": "{",
+      "patternSuffix": "}"
+    }
+  ]
 }
 ```
 

@@ -1,46 +1,47 @@
 {
-    "targets": {
-        "GET": [
-            {
-                "relativePath": "/v1/example",
-                "expectedStatusCode": 200,
-                "requestBody": null,
-                "patternPrefix": "{",
-                "patternSuffix": "}"
+    "targets": [
+        {
+            "relativePath": "/v1/example",
+            "httpMethod": "GET",
+            "expectedStatusCode": 200,
+            "requestBody": null,
+            "patternPrefix": "{",
+            "patternSuffix": "}"
+        },
+        {
+            "relativePath": "/v1/{1-100}",
+            "expectedStatusCode": 200,
+            "httpMethod": "GET",
+            "requestBody": null,
+            "patternPrefix": "{",
+            "patternSuffix": "}"
+        },
+        {
+            "relativePath": "/v1/@1-3@",
+            "httpMethod": "GET",
+            "expectedStatusCode": 200,
+            "requestBody": null,
+            "patternPrefix": "@",
+            "patternSuffix": "@"
+        },
+        {
+            "relativePath": "/v1/expected_jsonmissmatch",
+            "httpMethod": "GET",
+            "expectedStatusCode": 200,
+            "requestBody": null,
+            "patternPrefix": "{",
+            "patternSuffix": "}"
+        },
+        {
+            "relativePath": "/v1/example",
+            "httpMethod": "POST",
+            "expectedStatusCode": 201,
+            "requestBody": "{\"a\":\"b\"}",
+            "requestHeaders": {
+                "Content-Type": "application/json"
             },
-            {
-                "relativePath": "/v1/{1-100}",
-                "expectedStatusCode": 200,
-                "requestBody": null,
-                "patternPrefix": "{",
-                "patternSuffix": "}"
-            },
-            {
-                "relativePath": "/v1/@1-3@",
-                "expectedStatusCode": 200,
-                "requestBody": null,
-                "patternPrefix": "@",
-                "patternSuffix": "@"
-            },
-            {
-                "relativePath": "/v1/expected_jsonmissmatch",
-                "expectedStatusCode": 200,
-                "requestBody": null,
-                "patternPrefix": "{",
-                "patternSuffix": "}"
-            }
-        ],
-        "POST": [
-            {
-                "relativePath": "/v1/example",
-                "expectedStatusCode": 201,
-                "requestBody": "{\"a\":\"b\"}",
-                "requestHeaders": {
-                    "Content-Type": "application/json"
-                },
-                "patternPrefix": "{",
-                "patternSuffix": "}"
-            }
-        ]
-    }
+            "patternPrefix": "{",
+            "patternSuffix": "}"
+        }
+    ]
 }

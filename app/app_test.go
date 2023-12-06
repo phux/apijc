@@ -55,14 +55,13 @@ func TestApp_Run(t *testing.T) {
 				BaseDomain: "http://localhost:123",
 				NewDomain:  "http://localhost:456",
 				URLs: app.URLs{
-					Targets: map[string][]app.Target{
-						"GET": {
-							{
-								RelativePath:       "/foo",
-								ExpectedStatusCode: 0,
-								PatternPrefix:      stringPointer("{"),
-								PatternSuffix:      nil,
-							},
+					Targets: []app.Target{
+						{
+							RelativePath:       "/foo",
+							HTTPMethod:         "GET",
+							ExpectedStatusCode: 0,
+							PatternPrefix:      stringPointer("{"),
+							PatternSuffix:      nil,
 						},
 					},
 				},
@@ -75,14 +74,13 @@ func TestApp_Run(t *testing.T) {
 				BaseDomain: "http://localhost:123",
 				NewDomain:  "http://localhost:456",
 				URLs: app.URLs{
-					Targets: map[string][]app.Target{
-						"GET": {
-							{
-								RelativePath:       "/foo",
-								ExpectedStatusCode: 0,
-								PatternPrefix:      nil,
-								PatternSuffix:      stringPointer("}"),
-							},
+					Targets: []app.Target{
+						{
+							RelativePath:       "/foo",
+							HTTPMethod:         "GET",
+							ExpectedStatusCode: 0,
+							PatternPrefix:      nil,
+							PatternSuffix:      stringPointer("}"),
 						},
 					},
 				},
@@ -450,9 +448,9 @@ func TestApp_CheckTarget(t *testing.T) {
 			)
 
 			checkedPaths, totalPaths, err := a.CheckTarget(
-				tt.args.httpMethod,
 				app.Target{
 					RelativePath:       tt.args.relativeURL,
+					HTTPMethod:         tt.args.httpMethod,
 					ExpectedStatusCode: tt.args.statusCode,
 				},
 			)
@@ -590,7 +588,7 @@ func TestCheckTarget_WithRanges(t *testing.T) {
 					JSON(mockedResponse.responseBody)
 			}
 
-			checkedPaths, countPaths, err := a.CheckTarget("GET", tt.target)
+			checkedPaths, countPaths, err := a.CheckTarget(tt.target)
 
 			assert.NoError(t, err)
 			assert.Empty(t, a.Results.Findings)
