@@ -7,12 +7,14 @@ import (
 )
 
 type URLs struct {
-	Targets map[string][]Target `json:"targets"`
+	Targets           map[string][]Target `json:"targets"`
+	SequentialTargets map[string][]Target `json:"sequentialTargets"`
 }
 
-func NewURLs(targets map[string][]Target) *URLs {
+func NewURLs(targets map[string][]Target, sequentialTargets map[string][]Target) *URLs {
 	return &URLs{
 		Targets: targets,
+    SequentialTargets: map[string][]Target,
 	}
 }
 
