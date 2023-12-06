@@ -205,8 +205,8 @@ The steps for a sequential target group are:
         "patternSuffix": "<optional string, a character to stop expansion; default }>"
       }
     ],
-  "sequentialTargets": [
-    [
+  "sequentialTargets": {
+    "Some name for the sequence, example: Create Order, then fetch Order": [
       {
         "relativePath": "/first/path",
         "httpMethod": "<GET|POST|...>",
@@ -218,7 +218,7 @@ The steps for a sequential target group are:
         "expectedStatusCode": 200
       }
     ]
-  ]
+  }
 }
 ```
 
@@ -278,7 +278,22 @@ This path will result in 4 paths in total:
       "patternPrefix": "{",
       "patternSuffix": "}"
     }
-  ]
+  ],
+  "sequentialTargets": {
+    "First POST, then GET": [
+      {
+        "relativePath": "/v1/sequential_post",
+        "httpMethod": "POST",
+        "expectedStatusCode": 201,
+        "requestBody": "{\"a\":\"b\"}"
+      },
+      {
+        "relativePath": "/v1/sequential_get",
+        "httpMethod": "GET",
+        "expectedStatusCode": 200
+      }
+    ]
+  }
 }
 ```
 
