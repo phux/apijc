@@ -91,12 +91,14 @@ func TestApp_Run(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			a := &app.App{
-				BaseDomain: tt.fields.BaseDomain,
-				NewDomain:  tt.fields.NewDomain,
-				URLs:       tt.fields.URLs,
-				Results:    &app.Results{},
-			}
+			a := app.NewApp(
+				tt.fields.BaseDomain,
+				tt.fields.NewDomain,
+				app.NewURLParser(),
+				1.0,
+				app.Headers{},
+			)
+			a.URLs = tt.fields.URLs
 
 			err := a.Run()
 			if tt.wantErr == nil {
@@ -117,9 +119,11 @@ func TestApp_CheckTarget(t *testing.T) {
 		headers    app.Headers
 	}
 	type args struct {
-		httpMethod  string
-		relativeURL string
-		statusCode  int
+		httpMethod      string
+		requestBody     *string
+		requestBodyFile *string
+		relativeURL     string
+		statusCode      int
 	}
 	type httpResponse struct {
 		statusCode int
@@ -305,31 +309,6 @@ func TestApp_CheckTarget(t *testing.T) {
 			expectedCheckedPaths: 1,
 		},
 		{
-			fields: fields{
-				BaseDomain: "http://localhost:1234",
-				NewDomain:  "http://localhost:5678",
-				URLs:       app.URLs{},
-				Results:    &app.Results{},
-			},
-			args: args{
-				httpMethod:  "GET",
-				relativeURL: "/foobar",
-				statusCode:  200,
-			},
-			mockedHTTPResponses: httpResponses{
-				baseResponse: httpResponse{
-					statusCode: 200,
-					body:       `{"foo": "bar"}`,
-				},
-				newResponse: httpResponse{
-					statusCode: 200,
-					body:       `{"foo": "bar"}`,
-				},
-			},
-			expectedFindings:     []app.Finding{},
-			expectedCheckedPaths: 1,
-		},
-		{
 			name: "Happy Path - matching 2 level JSON",
 			fields: fields{
 				BaseDomain: "http://localhost:1234",
@@ -450,6 +429,8 @@ func TestApp_CheckTarget(t *testing.T) {
 					RelativePath:       tt.args.relativeURL,
 					HTTPMethod:         tt.args.httpMethod,
 					ExpectedStatusCode: tt.args.statusCode,
+					RequestBody:        tt.args.requestBody,
+					RequestBodyFile:    tt.args.requestBodyFile,
 				},
 			)
 

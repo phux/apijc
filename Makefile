@@ -4,7 +4,7 @@ restart-docker:
 
 run-example:
 	go run main.go \
-		--urlFile urlfile_example.json \
+		--urlFile .testdata/urlfile_example.json \
 		--baseDomain "http://localhost:8080" \
 		--newDomain "http://localhost:8081" \
 		--rateLimit 1000 \
@@ -22,7 +22,7 @@ release-local:
 
 test-linux-release:
 	./dist/apijc_linux_amd64_v1/apijc \
-		--urlFile urlfile_example.json \
+		--urlFile .testdata/urlfile_example.json \
 		--baseDomain "http://localhost:8080" \
 		--newDomain "http://localhost:8081" \
 		--rateLimit 1000 \

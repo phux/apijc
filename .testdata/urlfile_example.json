@@ -42,6 +42,12 @@
             },
             "patternPrefix": "{",
             "patternSuffix": "}"
+        },
+        {
+            "relativePath": "/v1/post_with_body_file",
+            "httpMethod": "POST",
+            "expectedStatusCode": 201,
+            "requestBodyFile": ".testdata/request_body.json"
         }
     ],
     "sequentialTargets": {

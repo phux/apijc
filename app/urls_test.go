@@ -29,7 +29,7 @@ func TestLoadURLsFromFile(t *testing.T) {
 		{
 			name: "happy path",
 			args: args{
-				path: "../urlfile_example.json",
+				path: "../.testdata/urlfile_example.json",
 			},
 			want: &app.URLs{
 				Targets: []app.Target{
@@ -75,6 +75,12 @@ func TestLoadURLsFromFile(t *testing.T) {
 						RequestBody:   &postBody,
 						PatternPrefix: &patternPrefix,
 						PatternSuffix: &patternSuffix,
+					},
+					{
+						RelativePath:       "/v1/post_with_body_file",
+						HTTPMethod:         "POST",
+						ExpectedStatusCode: 201,
+						RequestBodyFile:    stringPointer(".testdata/request_body.json"),
 					},
 				},
 				SequentialTargets: map[string][]app.Target{

@@ -20,6 +20,7 @@ user-defined paths on two domains and reports any differences.
       - [sequentialTargets](#sequentialtargets)
       - [Structure](#structure)
       - [Path expansion](#path-expansion)
+      - [requestBody vs requestBodyFile](#requestbody-vs-requestbodyfile)
       - [urlFile Example](#urlfile-example)
     - [rateLimit](#ratelimit)
     - [headerFile](#headerfile)
@@ -30,6 +31,7 @@ user-defined paths on two domains and reports any differences.
       - [outputFile](#outputfile)
         - [outputFile Example](#outputfile-example)
   - [Exit codes](#exit-codes)
+  - [TODOs](#todos)
   <!--toc:end-->
 
 ## Features
@@ -109,7 +111,7 @@ Note: if `--rateLimit` is not passed to `apijc`, the default rate limit is 1 req
 ```sh
 $ apijc --baseDomain http://localhost:8080 \
   --newDomain http://localhost:8081 \
-  --urlFile ./urlfile_example.json \
+  --urlFile .testdata/urlfile_example.json \
   --rateLimit 1000
 
 Starting with rate limit: 1000.000000/second
@@ -198,6 +200,7 @@ The steps for a sequential target group are:
         "httpMethod": "<GET|POST|...>",
         "expectedStatusCode": <required int; checked on both domains>,
         "requestBody": "<optional string, body to send to relativePath>",
+        "requestBodyFile": "<optional string, path to a file containing a JSON request body>",
         "requestHeaders": { // optional
           "<string, header key>": "<string, header value>"
         },
@@ -252,6 +255,27 @@ This path will result in 4 paths in total:
 - `/foo/2/bar/a`
 - `/foo/2/bar/b`
 
+#### requestBody vs requestBodyFile
+
+The `urlFile` can contain two different exclusive keys to specify the request body to a target: `requestBody` and `requestBodyFile`.
+
+`requestBody` contains an escaped JSON string to be sent as the body.
+
+Example:
+
+```json
+"requestBody": "{\"a\":\"b\"}",
+```
+
+`requestBodyFile` contains a path to a JSON file containing the body to be sent
+for the target. This is helpful if the request body to be sent is bigger and avoids escaping hell.
+
+Example:
+
+```json
+"requestBodyFile": ".testdata/request_body.json"
+```
+
 #### urlFile Example
 
 ```json
@@ -277,6 +301,12 @@ This path will result in 4 paths in total:
       },
       "patternPrefix": "{",
       "patternSuffix": "}"
+    },
+    {
+      "relativePath": "/v1/post_with_body_file",
+      "httpMethod": "POST",
+      "expectedStatusCode": 201,
+      "requestBodyFile": ".testdata/request_body.json"
     }
   ],
   "sequentialTargets": {
@@ -377,3 +407,8 @@ to this file instead of stdout.
 
 On successful execution `apijc` exits with code `0`.
 On any issue the exit code will be `> 0`
+
+## TODOs
+
+- [x] read `requestBody` JSON from files
+- [ ] allow to skip the diff comparison for JSON response body fields on a target (e.g. `id`)

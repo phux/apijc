@@ -6,7 +6,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -109,7 +108,7 @@ func loadHeadersFromFile() (app.Headers, error) {
 		return headers, nil
 	}
 
-	content, err := ioutil.ReadFile(headerFile)
+	content, err := os.ReadFile(headerFile)
 	if err != nil {
 		return headers, err
 	}

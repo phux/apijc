@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	jd "github.com/josephburnett/jd/lib"
@@ -14,12 +15,14 @@ import (
 )
 
 var (
-	ErrNoTargetsDefined         = errors.New("no URL targets defined")
-	ErrJSONMismatch             = errors.New("JSON mismatch")
-	ErrDomainsMatch             = errors.New("base and newDomain cannot be the same domain")
-	ErrUnexpectedStatusCode     = errors.New("unexpected status code")
-	ErrPrefixFilledButSuffixNot = errors.New("PatternPrefix is filled but PatternSuffix is not")
-	ErrSuffixFilledButPrefixNot = errors.New("PatternSuffix is filled but PatternPrefix is not")
+	ErrNoTargetsDefined                       = errors.New("no URL targets defined")
+	ErrJSONMismatch                           = errors.New("JSON mismatch")
+	ErrDomainsMatch                           = errors.New("base and newDomain cannot be the same domain")
+	ErrUnexpectedStatusCode                   = errors.New("unexpected status code")
+	ErrPrefixFilledButSuffixNot               = errors.New("PatternPrefix is filled but PatternSuffix is not")
+	ErrSuffixFilledButPrefixNot               = errors.New("PatternSuffix is filled but PatternPrefix is not")
+	ErrBothRequestBodyAndRequestBodyFileGiven = errors.New("must have only one of requestBody or requestBodyFile - both are given")
+	ErrRequestBodyFileNotFound                = errors.New("could not find requestBodyFile")
 )
 
 type parser interface {
@@ -304,9 +307,29 @@ func (a *App) buildRequest(target Target, url string) (*http.Request, error) {
 	var req *http.Request
 	var err error
 
+	if target.RequestBody != nil && target.RequestBodyFile != nil {
+		return nil, ErrBothRequestBodyAndRequestBodyFileGiven
+	}
+
 	if target.RequestBody != nil {
 		req, err = http.NewRequest(target.HTTPMethod, url, strings.NewReader(*target.RequestBody))
-	} else {
+	}
+	if target.RequestBodyFile != nil {
+		if _, err := os.Stat(*target.RequestBodyFile); err != nil {
+			return nil, fmt.Errorf(
+				"%s: %w",
+				*target.RequestBodyFile,
+				ErrRequestBodyFileNotFound,
+			)
+		}
+
+		body, err := os.ReadFile(*target.RequestBodyFile)
+		if err != nil {
+			return nil, err
+		}
+		req, err = http.NewRequest(target.HTTPMethod, url, strings.NewReader(string(body)))
+	}
+	if req == nil {
 		req, err = http.NewRequest(target.HTTPMethod, url, nil)
 	}
 	if err != nil {

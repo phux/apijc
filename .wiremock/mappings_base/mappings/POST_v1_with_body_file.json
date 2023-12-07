@@ -1,0 +1,17 @@
+{
+    "request": {
+        "method": "POST",
+        "url": "/v1/post_with_body_file",
+        "bodyPatterns": [
+            {
+                "equalToJson": "{\"foo\":\"bar\"}"
+            }
+        ]
+    },
+    "response": {
+        "status": 201,
+        "jsonBody": {
+            "foo": "bar"
+        }
+    }
+}
